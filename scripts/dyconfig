@@ -1,0 +1,427 @@
+#!/bin/bash
+
+# 抖音直播流提取器 - 配置向导
+# DouyinY Live Stream Extractor - Configuration Wizard
+# 使用方法: ./dyconfig 或 dyconfig
+
+# 导入主脚本环境变量
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 不要自动导入dy脚本，避免冲突
+export DY_PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# 配置文件路径
+CONFIG_SCRIPT="$SCRIPT_DIR/dyconfig"
+ENV_FILE="$HOME/.dyrc"
+BASH_PROFILE="$HOME/.bash_profile"
+ZSHRC="$HOME/.zshrc"
+
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# 配置向导横幅
+config_banner() {
+    clear
+    echo -e "${PURPLE}"
+    echo "┌─────────────────────────────────────┐"
+    echo "│         ⚙️  配置向导 ⚙️           │"
+    echo "│    DouyinY Configuration Wizard    │"
+    echo "└─────────────────────────────────────┘"
+    echo -e "${NC}"
+}
+
+# 打印信息
+log_info() {
+    echo -e "${CYAN}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# 检查当前配置
+check_current_config() {
+    echo -e "${BLUE}🔍 检查当前配置...${NC}"
+    echo ""
+    
+    # 检查环境变量文件
+    if [ -f "$ENV_FILE" ]; then
+        log_success "找到配置文件: $ENV_FILE"
+        echo "当前配置内容:"
+        cat "$ENV_FILE"
+    else
+        log_info "配置文件不存在: $ENV_FILE"
+    fi
+    echo ""
+    
+    # 检查PATH中是否包含脚本目录
+    if echo "$PATH" | grep -q "$SCRIPT_DIR"; then
+        log_success "脚本目录已在PATH中"
+    else
+        log_warning "脚本目录不在PATH中"
+    fi
+    
+    # 检查脚本权限
+    for script in dy dyfast dydev; do
+        script_path="$SCRIPT_DIR/$script"
+        if [ -f "$script_path" ]; then
+            if [ -x "$script_path" ]; then
+                log_success "$script 脚本可执行"
+            else
+                log_warning "$script 脚本不可执行"
+            fi
+        else
+            log_error "未找到 $script 脚本"
+        fi
+    done
+    echo ""
+}
+
+# 配置PATH环境变量
+configure_path() {
+    echo -e "${BLUE}🛣️  配置PATH环境变量...${NC}"
+    
+    # 更准确的shell检测
+    if [ -n "$ZSH_VERSION" ] || [[ "$SHELL" == *"zsh"* ]]; then
+        SHELL_RC="$ZSHRC"
+        SHELL_NAME="zsh"
+    elif [ -n "$BASH_VERSION" ] || [[ "$SHELL" == *"bash"* ]]; then
+        SHELL_RC="$BASH_PROFILE"
+        SHELL_NAME="bash"
+    else
+        # 检查默认shell
+        USER_SHELL=$(basename "$SHELL")
+        if [ "$USER_SHELL" = "zsh" ]; then
+            SHELL_RC="$ZSHRC"
+            SHELL_NAME="zsh"
+        elif [ "$USER_SHELL" = "bash" ]; then
+            SHELL_RC="$BASH_PROFILE"
+            SHELL_NAME="bash"
+        else
+            SHELL_RC="$HOME/.profile"
+            SHELL_NAME="通用"
+        fi
+    fi
+    
+    echo "检测到shell: $SHELL_NAME"
+    echo "配置文件: $SHELL_RC"
+    
+    # 检查是否已经配置
+    PATH_EXPORT="export PATH=\"$SCRIPT_DIR:\$PATH\""
+    
+    if [ -f "$SHELL_RC" ] && grep -q "$SCRIPT_DIR" "$SHELL_RC"; then
+        log_warning "PATH配置已存在"
+        read -p "是否重新配置? (y/n): " reconfigure
+        if [[ ! $reconfigure =~ ^[Yy] ]]; then
+            return 0
+        fi
+    fi
+    
+    # 添加PATH配置
+    echo "" >> "$SHELL_RC"
+    echo "# 抖音直播流提取器脚本路径" >> "$SHELL_RC"
+    echo "$PATH_EXPORT" >> "$SHELL_RC"
+    
+    log_success "PATH配置已添加到 $SHELL_RC"
+    
+    # 立即生效
+    export PATH="$SCRIPT_DIR:$PATH"
+    log_success "PATH配置已在当前会话中生效"
+    
+    echo ""
+    log_info "要在新的终端中使用，请运行: source $SHELL_RC"
+    echo ""
+}
+
+# 配置环境变量文件
+configure_env_file() {
+    echo -e "${BLUE}📝 创建环境变量配置文件...${NC}"
+    
+    cat > "$ENV_FILE" << EOF
+# 抖音直播流提取器环境变量配置
+# DouyinY Live Stream Extractor Environment Variables
+
+# 项目配置
+export DY_PROJECT_DIR="$DY_PROJECT_DIR"
+export DY_APP_NAME="抖音直播流提取器"
+export DY_VERSION="2.0"
+
+# 目录配置
+export DY_SAVE_DIR="$HOME/Documents/直播源/抖音直播源"
+export DY_TEMP_DIR="$DY_PROJECT_DIR/temp"
+export DY_LOGS_DIR="$DY_PROJECT_DIR/logs"
+export DY_CONFIG_FILE="$DY_PROJECT_DIR/src/config.py"
+
+# Python配置
+export DY_PYTHON_CMD="python3"
+export PYTHONPATH="$DY_PROJECT_DIR/src:\$PYTHONPATH"
+
+# 调试配置
+export DY_DEBUG=false
+export DY_VERBOSE=false
+
+# 网络配置
+export DY_TIMEOUT=30
+export DY_RETRY_COUNT=3
+
+# 播放器配置
+export DY_DEFAULT_PLAYER="iina"
+
+# 颜色配置
+export DY_COLOR_RED='\033[0;31m'
+export DY_COLOR_GREEN='\033[0;32m'
+export DY_COLOR_YELLOW='\033[1;33m'
+export DY_COLOR_BLUE='\033[0;34m'
+export DY_COLOR_PURPLE='\033[0;35m'
+export DY_COLOR_CYAN='\033[0;36m'
+export DY_COLOR_NC='\033[0m'
+
+EOF
+    
+    log_success "环境变量配置文件已创建: $ENV_FILE"
+    
+    # 在shell配置文件中添加source命令
+    local source_line="source \"$ENV_FILE\""
+    
+    if [ -f "$SHELL_RC" ] && ! grep -q "$ENV_FILE" "$SHELL_RC"; then
+        echo "" >> "$SHELL_RC"
+        echo "# 加载抖音直播流提取器环境变量" >> "$SHELL_RC"
+        echo "$source_line" >> "$SHELL_RC"
+        log_success "自动加载配置已添加到 $SHELL_RC"
+    fi
+    
+    # 立即加载配置
+    source "$ENV_FILE"
+    log_success "环境变量配置已在当前会话中生效"
+    echo ""
+}
+
+# 设置脚本权限
+set_script_permissions() {
+    echo -e "${BLUE}🔐 设置脚本执行权限...${NC}"
+    
+    for script in dy dyfast dydev dyconfig; do
+        script_path="$SCRIPT_DIR/$script"
+        if [ -f "$script_path" ]; then
+            chmod +x "$script_path"
+            log_success "$script 脚本权限已设置"
+        else
+            log_warning "未找到 $script 脚本"
+        fi
+    done
+    echo ""
+}
+
+# 创建必要目录
+create_directories() {
+    echo -e "${BLUE}📁 创建必要目录...${NC}"
+    
+    directories=(
+        "$HOME/Documents/直播源"
+        "$HOME/Documents/直播源/抖音直播源"
+        "$DY_PROJECT_DIR/temp"
+        "$DY_PROJECT_DIR/logs"
+    )
+    
+    for dir in "${directories[@]}"; do
+        if [ ! -d "$dir" ]; then
+            mkdir -p "$dir"
+            log_success "创建目录: $dir"
+        else
+            log_info "目录已存在: $dir"
+        fi
+    done
+    echo ""
+}
+
+# 测试配置
+test_configuration() {
+    echo -e "${BLUE}🧪 测试配置...${NC}"
+    
+    # 测试命令是否可用
+    for cmd in dy dyfast dydev; do
+        if command -v "$cmd" &> /dev/null; then
+            log_success "$cmd 命令可用"
+        else
+            log_warning "$cmd 命令不可用 (可能需要重启终端)"
+        fi
+    done
+    
+    # 测试Python环境
+    if command -v python3 &> /dev/null; then
+        log_success "Python3 环境正常"
+    else
+        log_error "Python3 环境异常"
+    fi
+    
+    # 测试项目文件
+    if [ -f "$DY_PROJECT_DIR/src/main.py" ]; then
+        log_success "主程序文件存在"
+    else
+        log_error "主程序文件缺失"
+    fi
+    
+    echo ""
+}
+
+# 显示配置总结
+show_summary() {
+    echo -e "${GREEN}"
+    echo "┌─────────────────────────────────────┐"
+    echo "│         ✅ 配置完成 ✅           │"
+    echo "└─────────────────────────────────────┘"
+    echo -e "${NC}"
+    
+    echo -e "${CYAN}📋 配置总结:${NC}"
+    echo "• 项目目录: $DY_PROJECT_DIR"
+    echo "• 配置文件: $ENV_FILE"
+    echo "• Shell配置: $SHELL_RC"
+    echo "• 保存目录: $HOME/Documents/直播源/抖音直播源"
+    echo ""
+    
+    echo -e "${CYAN}🚀 可用命令:${NC}"
+    echo "• dy        - 主启动脚本"
+    echo "• dyfast    - 快速启动"
+    echo "• dydev     - 开发模式"
+    echo "• dyconfig  - 配置向导"
+    echo ""
+    
+    echo -e "${YELLOW}💡 使用提示:${NC}"
+    echo "1. 在新终端中，直接输入 'dy' 即可启动程序"
+    echo "2. 如果命令不可用，请运行: source $SHELL_RC"
+    echo "3. 或者重启终端"
+    echo ""
+    
+    echo -e "${CYAN}📖 下一步:${NC}"
+    echo "输入 'dy' 开始使用抖音直播流提取器！"
+    echo ""
+}
+
+# 主配置流程
+main_config() {
+    config_banner
+    
+    # 设置基本环境变量（如果未设置）
+    if [ -z "$DY_PROJECT_DIR" ]; then
+        export DY_PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    fi
+    
+    echo -e "${BLUE}⚙️  开始配置抖音直播流提取器...${NC}"
+    echo ""
+    
+    # 执行配置步骤
+    check_current_config
+    
+    read -p "是否继续配置? (y/n): " continue_config
+    if [[ ! $continue_config =~ ^[Yy] ]]; then
+        echo "配置已取消"
+        exit 0
+    fi
+    
+    set_script_permissions
+    create_directories
+    configure_env_file
+    configure_path
+    test_configuration
+    show_summary
+}
+
+# 菜单模式
+menu_mode() {
+    while true; do
+        config_banner
+        
+        echo -e "${PURPLE}⚙️  配置选项:${NC}"
+        echo "  1. 🔧 完整配置 (推荐)"
+        echo "  2. 🛣️  仅配置PATH"
+        echo "  3. 📝 仅配置环境变量"
+        echo "  4. 🔐 仅设置脚本权限"
+        echo "  5. 📁 仅创建目录"
+        echo "  6. 🧪 测试当前配置"
+        echo "  7. 📋 查看当前配置"
+        echo "  8. 🚪 退出"
+        echo ""
+        
+        read -p "请选择操作 (1-8): " choice
+        
+        case $choice in
+            1)
+                main_config
+                break
+                ;;
+            2)
+                configure_path
+                ;;
+            3)
+                configure_env_file
+                ;;
+            4)
+                set_script_permissions
+                ;;
+            5)
+                create_directories
+                ;;
+            6)
+                test_configuration
+                ;;
+            7)
+                check_current_config
+                ;;
+            8)
+                echo -e "${GREEN}👋 退出配置向导${NC}"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}❌ 无效选择${NC}"
+                ;;
+        esac
+        
+        echo ""
+        read -p "按回车键继续..."
+    done
+}
+
+# 处理命令行参数
+case "${1:-}" in
+    --menu|-m)
+        menu_mode
+        ;;
+    --help|-h)
+        config_banner
+        echo "用法: dyconfig [选项]"
+        echo ""
+        echo "选项:"
+        echo "  无参数      - 执行完整配置"
+        echo "  -m, --menu  - 显示配置菜单"
+        echo "  -h, --help  - 显示此帮助信息"
+        echo ""
+        echo "功能:"
+        echo "  • 配置PATH环境变量"
+        echo "  • 创建环境变量文件"
+        echo "  • 设置脚本执行权限"
+        echo "  • 创建必要目录"
+        echo "  • 测试配置有效性"
+        ;;
+    "")
+        main_config
+        ;;
+    *)
+        echo "未知选项: $1"
+        echo "使用 'dyconfig --help' 查看帮助"
+        exit 1
+        ;;
+esac

@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# 抖音直播流提取器 - 快速启动脚本
+# DouyinY Live Stream Extractor - Fast Launcher
+# 使用方法: ./dyfast 或 dyfast
+
+# 导入环境变量（如果存在dy脚本）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/dy" ]; then
+    source "$SCRIPT_DIR/dy" 2>/dev/null || true
+fi
+
+# 如果没有导入成功，设置基本环境变量
+if [ -z "$DY_PROJECT_DIR" ]; then
+    export DY_PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    export DY_APP_NAME="抖音直播流提取器"
+fi
+
+# 颜色定义
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+NC='\033[0m'
+
+# 快速启动横幅
+echo -e "${PURPLE}🚀 ${DY_APP_NAME} - 快速启动${NC}"
+echo -e "${BLUE}================================${NC}"
+
+# 检测Python
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+else
+    echo "❌ 未找到Python环境"
+    exit 1
+fi
+
+# 切换到项目目录
+cd "$DY_PROJECT_DIR" || exit 1
+
+# 检查主程序
+if [ ! -f "src/main.py" ]; then
+    echo "❌ 未找到src/main.py文件"
+    exit 1
+fi
+
+echo -e "${GREEN}⚡ 快速启动中...${NC}"
+echo ""
+
+# 直接启动，不做额外检查
+exec $PYTHON_CMD src/main.py
