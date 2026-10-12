@@ -229,6 +229,7 @@ https://pull-f5-tt02.fcdn.us.tiktokcdn.com/game/stream-123456_hd/playlist.m3u8
 ## 📄 许可证
 
 本项目仅供学习和研究使用，请勿用于商业用途。
+https://vsllm.cc
 
 ---
 
